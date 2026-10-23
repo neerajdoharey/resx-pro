@@ -107,40 +107,62 @@ public struct OSDView: View {
         VStack(spacing: 14) {
             Text(displayName)
                 .font(.system(size: 13, weight: .medium, design: .rounded))
-                .foregroundColor(.white.opacity(0.85))
+                .foregroundColor(.white.opacity(0.88))
                 .lineLimit(1)
             
             Image(systemName: icon)
-                .font(.system(size: 54, weight: .regular))
+                .font(.system(size: 52, weight: .regular))
                 .foregroundColor(.white)
-                .shadow(color: .black.opacity(0.3), radius: 4, x: 0, y: 2)
+                .shadow(color: .black.opacity(0.35), radius: 4, x: 0, y: 2)
             
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
-                    RoundedRectangle(cornerRadius: 6, style: .continuous)
-                        .fill(Color.white.opacity(0.2))
+                    Capsule()
+                        .fill(Color.black.opacity(0.40))
+                        .overlay(
+                            Capsule()
+                                .stroke(Color.white.opacity(0.08), lineWidth: 0.5)
+                        )
                     
-                    RoundedRectangle(cornerRadius: 6, style: .continuous)
-                        .fill(Color.white)
+                    Capsule()
+                        .fill(
+                            LinearGradient(
+                                colors: [Color.white.opacity(0.90), Color.white],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
                         .frame(width: max(0, min(geo.size.width, geo.size.width * CGFloat(value) / 100.0)))
+                        .shadow(color: Color.white.opacity(0.25), radius: 2)
                 }
             }
-            .frame(height: 8)
-            .padding(.horizontal, 16)
+            .frame(height: 7)
+            .padding(.horizontal, 18)
             
             Text("\(value)%")
-                .font(.system(size: 12, weight: .semibold, design: .monospaced))
-                .foregroundColor(.white.opacity(0.9))
+                .font(.system(size: 12.5, weight: .semibold, design: .rounded))
+                .monospacedDigit()
+                .foregroundColor(.white.opacity(0.92))
         }
         .padding(.vertical, 18)
         .frame(width: 200, height: 200)
         .background(
             RoundedRectangle(cornerRadius: 24, style: .continuous)
                 .fill(.ultraThinMaterial)
-                .shadow(color: .black.opacity(0.4), radius: 16, x: 0, y: 8)
+                .shadow(color: .black.opacity(0.45), radius: 20, x: 0, y: 10)
                 .overlay(
                     RoundedRectangle(cornerRadius: 24, style: .continuous)
-                        .stroke(Color.white.opacity(0.15), lineWidth: 1)
+                        .strokeBorder(
+                            LinearGradient(
+                                colors: [
+                                    Color.white.opacity(0.28),
+                                    Color.white.opacity(0.08)
+                                ],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            ),
+                            lineWidth: 1
+                        )
                 )
         )
         .preferredColorScheme(.dark)
@@ -156,13 +178,13 @@ public struct OSDStatusView: View {
         VStack(spacing: 12) {
             Text(title)
                 .font(.system(size: 13, weight: .medium, design: .rounded))
-                .foregroundColor(.white.opacity(0.85))
+                .foregroundColor(.white.opacity(0.88))
                 .lineLimit(1)
             
             Image(systemName: icon)
-                .font(.system(size: 48, weight: .regular))
+                .font(.system(size: 46, weight: .regular))
                 .foregroundColor(.white)
-                .shadow(color: .black.opacity(0.3), radius: 4, x: 0, y: 2)
+                .shadow(color: .black.opacity(0.35), radius: 4, x: 0, y: 2)
             
             Text(subtitle)
                 .font(.system(size: 13, weight: .semibold, design: .rounded))
@@ -175,10 +197,20 @@ public struct OSDStatusView: View {
         .background(
             RoundedRectangle(cornerRadius: 24, style: .continuous)
                 .fill(.ultraThinMaterial)
-                .shadow(color: .black.opacity(0.4), radius: 16, x: 0, y: 8)
+                .shadow(color: .black.opacity(0.45), radius: 20, x: 0, y: 10)
                 .overlay(
                     RoundedRectangle(cornerRadius: 24, style: .continuous)
-                        .stroke(Color.white.opacity(0.15), lineWidth: 1)
+                        .strokeBorder(
+                            LinearGradient(
+                                colors: [
+                                    Color.white.opacity(0.28),
+                                    Color.white.opacity(0.08)
+                                ],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            ),
+                            lineWidth: 1
+                        )
                 )
         )
         .preferredColorScheme(.dark)

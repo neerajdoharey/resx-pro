@@ -1,13 +1,120 @@
 import SwiftUI
 import AppKit
 
-// MARK: - Custom BetterDisplay-Style Slider
+// MARK: - Apple-Style Pressable Button Style
+public struct ApplePressableButtonStyle: ButtonStyle {
+    var scale: CGFloat
+    var opacity: CGFloat
+    
+    public init(scale: CGFloat = 0.96, opacity: CGFloat = 0.88) {
+        self.scale = scale
+        self.opacity = opacity
+    }
+    
+    public func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? scale : 1.0)
+            .opacity(configuration.isPressed ? opacity : 1.0)
+            .animation(.spring(response: 0.22, dampingFraction: 0.72), value: configuration.isPressed)
+    }
+}
+
+// MARK: - Apple Keyboard Keycap Badge (⌥1, ⌥2)
+public struct AppleKeycapBadge: View {
+    let shortcut: String
+    
+    public init(_ shortcut: String) {
+        self.shortcut = shortcut
+    }
+    
+    public var body: some View {
+        Text(shortcut)
+            .font(.system(size: 9.5, weight: .bold, design: .monospaced))
+            .foregroundColor(.white.opacity(0.95))
+            .padding(.horizontal, 5)
+            .padding(.vertical, 2.5)
+            .background(
+                RoundedRectangle(cornerRadius: 4.5, style: .continuous)
+                    .fill(
+                        LinearGradient(
+                            colors: [Color.white.opacity(0.20), Color.white.opacity(0.08)],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 4.5, style: .continuous)
+                            .strokeBorder(
+                                LinearGradient(
+                                    colors: [Color.white.opacity(0.35), Color.white.opacity(0.12)],
+                                    startPoint: .top,
+                                    endPoint: .bottom
+                                ),
+                                lineWidth: 0.8
+                            )
+                    )
+            )
+            .shadow(color: Color.black.opacity(0.35), radius: 1, x: 0, y: 1)
+    }
+}
+
+// MARK: - Interactive Menu Row Component
+public struct MenuRowButton: View {
+    let icon: String
+    let title: String
+    var action: (() -> Void)? = nil
+    @State private var isHovered: Bool = false
+    
+    public init(icon: String, title: String, action: (() -> Void)? = nil) {
+        self.icon = icon
+        self.title = title
+        self.action = action
+    }
+    
+    public var body: some View {
+        Button(action: { action?() }) {
+            HStack(spacing: 8) {
+                Image(systemName: icon)
+                    .font(.system(size: 12))
+                    .foregroundColor(.white.opacity(0.8))
+                    .frame(width: 18, alignment: .center)
+                
+                Text(title)
+                    .font(.system(size: 11, weight: .regular))
+                    .foregroundColor(.white.opacity(0.92))
+                
+                Spacer()
+                
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 9, weight: .semibold))
+                    .foregroundColor(.white.opacity(0.35))
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 5)
+            .background(
+                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                    .fill(Color.white.opacity(isHovered ? 0.08 : 0.0))
+            )
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(ApplePressableButtonStyle(scale: 0.98, opacity: 0.85))
+        .onHover { hovering in
+            withAnimation(.easeOut(duration: 0.14)) {
+                isHovered = hovering
+            }
+        }
+    }
+}
+
+// MARK: - Custom BetterDisplay-Style Slider (Apple Fluid Physics)
 public struct BDSlider: View {
     @Binding var value: Double
     var range: ClosedRange<Double> = 0...100
     var step: Double = 1
     var tintColor: Color = .white
     var onEditingChanged: ((Double) -> Void)? = nil
+    
+    @State private var isDragging: Bool = false
     
     public init(
         value: Binding<Double>,
@@ -29,37 +136,76 @@ public struct BDSlider: View {
             let percent = CGFloat((value - range.lowerBound) / (range.upperBound - range.lowerBound))
             let clampedPercent = max(0.0, min(1.0, percent))
             let fillWidth = totalWidth * clampedPercent
+            let thumbDiameter: CGFloat = isDragging ? 16.5 : 14.0
             
             ZStack(alignment: .leading) {
-                // Background Track
+                // Background Track (Glass Inset)
                 Capsule()
-                    .fill(Color.black.opacity(0.45))
+                    .fill(Color.black.opacity(0.50))
                     .frame(height: 5)
+                    .overlay(
+                        Capsule()
+                            .stroke(Color.white.opacity(0.06), lineWidth: 0.5)
+                    )
                 
-                // Active Fill
+                // Active Fill (Vibrant Gradient)
                 Capsule()
-                    .fill(tintColor)
+                    .fill(
+                        LinearGradient(
+                            colors: [tintColor.opacity(0.85), tintColor],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
                     .frame(width: max(5, fillWidth), height: 5)
                 
-                // Thumb Knob
+                // Physical Direct Manipulation Thumb Knob
                 Circle()
                     .fill(Color.white)
-                    .frame(width: 15, height: 15)
-                    .shadow(color: Color.black.opacity(0.35), radius: 2, x: 0, y: 1)
-                    .offset(x: max(0, min(totalWidth - 15, fillWidth - 7.5)))
+                    .frame(width: thumbDiameter, height: thumbDiameter)
+                    .overlay(
+                        Circle()
+                            .strokeBorder(Color.black.opacity(0.12), lineWidth: 0.5)
+                    )
+                    .overlay(
+                        Circle()
+                            .stroke(Color.white.opacity(isDragging ? 0.35 : 0.0), lineWidth: 3)
+                            .scaleEffect(isDragging ? 1.25 : 1.0)
+                            .opacity(isDragging ? 1.0 : 0.0)
+                    )
+                    .shadow(color: Color.black.opacity(0.30), radius: 2, x: 0, y: 1.5)
+                    .shadow(color: Color.black.opacity(0.15), radius: 5, x: 0, y: 3)
+                    .offset(x: max(0, min(totalWidth - thumbDiameter, fillWidth - (thumbDiameter / 2.0))))
+                    .animation(.spring(response: 0.22, dampingFraction: 0.72), value: isDragging)
             }
             .frame(height: 16)
             .contentShape(Rectangle())
             .gesture(
                 DragGesture(minimumDistance: 0)
                     .onChanged { gesture in
+                        if !isDragging {
+                            isDragging = true
+                            NSHapticFeedbackManager.defaultPerformer.perform(.levelChange, performanceTime: .default)
+                        }
+                        
                         let locationX = max(0, min(totalWidth, gesture.location.x))
                         let newRatio = Double(locationX / totalWidth)
                         let rawVal = range.lowerBound + newRatio * (range.upperBound - range.lowerBound)
                         let stepped = (rawVal / step).rounded() * step
                         let clamped = max(range.lowerBound, min(range.upperBound, stepped))
+                        
+                        // Boundary haptic feedback on edge collision
+                        if (clamped == range.lowerBound || clamped == range.upperBound) && self.value != clamped {
+                            NSHapticFeedbackManager.defaultPerformer.perform(.alignment, performanceTime: .default)
+                        }
+                        
                         self.value = clamped
                         onEditingChanged?(clamped)
+                    }
+                    .onEnded { _ in
+                        withAnimation(.spring(response: 0.25, dampingFraction: 0.72)) {
+                            isDragging = false
+                        }
                     }
             )
         }
@@ -67,7 +213,7 @@ public struct BDSlider: View {
     }
 }
 
-// MARK: - Main Menu Bar View (BetterDisplay Pro Clone)
+// MARK: - Main Menu Bar View (ResX Pro)
 public struct MenuBarView: View {
     @ObservedObject var displayManager = DisplayManager.shared
     
@@ -113,6 +259,7 @@ public struct MenuBarView: View {
                     if isToolsExpanded {
                         toolsSection
                             .id("toolsSection")
+                            .transition(.opacity.combined(with: .scale(scale: 0.98, anchor: .bottom)))
                     }
                     
                     // MARK: 5. Bottom Footer Bar
@@ -126,7 +273,7 @@ public struct MenuBarView: View {
             .onChange(of: isToolsExpanded) { _, expanded in
                 if expanded {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-                        withAnimation(.easeInOut(duration: 0.2)) {
+                        withAnimation(.spring(response: 0.32, dampingFraction: 0.86)) {
                             proxy.scrollTo("footerBar", anchor: .bottom)
                         }
                     }
@@ -140,7 +287,17 @@ public struct MenuBarView: View {
                 .fill(.ultraThinMaterial)
                 .overlay(
                     RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .stroke(Color.white.opacity(0.12), lineWidth: 1)
+                        .strokeBorder(
+                            LinearGradient(
+                                colors: [
+                                    Color.white.opacity(0.22),
+                                    Color.white.opacity(0.06)
+                                ],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            ),
+                            lineWidth: 1
+                        )
                 )
         )
         .preferredColorScheme(.dark)
@@ -157,7 +314,7 @@ public struct MenuBarView: View {
             HStack(spacing: 8) {
                 Image(systemName: "laptopcomputer")
                     .font(.system(size: 13, weight: .semibold))
-                    .foregroundColor(.white.opacity(0.9))
+                    .foregroundColor(.white.opacity(0.95))
                 
                 Text("Built-in Display")
                     .font(.system(size: 13, weight: .semibold))
@@ -166,14 +323,19 @@ public struct MenuBarView: View {
                 // Main Display (M) badge
                 Text("M")
                     .font(.system(size: 9, weight: .bold, design: .rounded))
-                    .foregroundColor(.white.opacity(0.9))
+                    .foregroundColor(.white.opacity(0.95))
                     .frame(width: 14, height: 14)
-                    .background(Circle().fill(Color.white.opacity(0.2)))
+                    .background(
+                        Circle()
+                            .fill(LinearGradient(colors: [Color.white.opacity(0.28), Color.white.opacity(0.14)], startPoint: .top, endPoint: .bottom))
+                    )
+                    .overlay(Circle().stroke(Color.white.opacity(0.2), lineWidth: 0.5))
                 
                 if isCursorHere {
                     Circle()
                         .fill(Color.blue)
                         .frame(width: 6, height: 6)
+                        .shadow(color: Color.blue.opacity(0.8), radius: 3)
                 }
                 
                 Spacer()
@@ -187,7 +349,24 @@ public struct MenuBarView: View {
             .padding(.vertical, 8)
             .background(
                 RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .fill(Color.white.opacity(0.12))
+                    .fill(
+                        LinearGradient(
+                            colors: [Color.white.opacity(0.14), Color.white.opacity(0.08)],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                            .strokeBorder(
+                                LinearGradient(
+                                    colors: [Color.white.opacity(0.22), Color.white.opacity(0.05)],
+                                    startPoint: .top,
+                                    endPoint: .bottom
+                                ),
+                                lineWidth: 0.8
+                            )
+                    )
             )
             
             // Core Sliders (Always visible when collapsed)
@@ -197,16 +376,17 @@ public struct MenuBarView: View {
                     HStack {
                         Text("Brightness (Combined)")
                             .font(.system(size: 11, weight: .regular))
-                            .foregroundColor(.white.opacity(0.7))
+                            .foregroundColor(.white.opacity(0.72))
                         Spacer()
                         Text("\(brightness)%")
-                            .font(.system(size: 11, weight: .medium, design: .rounded))
-                            .foregroundColor(.white.opacity(0.9))
+                            .font(.system(size: 11, weight: .semibold, design: .rounded))
+                            .monospacedDigit()
+                            .foregroundColor(.white.opacity(0.95))
                     }
                     HStack(spacing: 8) {
                         Image(systemName: "sun.max")
                             .font(.system(size: 11))
-                            .foregroundColor(.white.opacity(0.6))
+                            .foregroundColor(.white.opacity(0.65))
                         
                         BDSlider(
                             value: Binding(
@@ -230,17 +410,18 @@ public struct MenuBarView: View {
                     HStack {
                         Text("Resolution")
                             .font(.system(size: 11, weight: .regular))
-                            .foregroundColor(.white.opacity(0.7))
+                            .foregroundColor(.white.opacity(0.72))
                         Spacer()
                         let resText = builtinResolutions[min(Int(builtinResolutionIndex), builtinResolutions.count - 1)]
                         Text(resText)
-                            .font(.system(size: 11, weight: .medium, design: .rounded))
-                            .foregroundColor(.white.opacity(0.9))
+                            .font(.system(size: 11, weight: .semibold, design: .rounded))
+                            .monospacedDigit()
+                            .foregroundColor(.white.opacity(0.95))
                     }
                     HStack(spacing: 8) {
                         Image(systemName: "arrow.up.left.and.down.right.and.arrow.up.right.and.down.left")
                             .font(.system(size: 10))
-                            .foregroundColor(.white.opacity(0.6))
+                            .foregroundColor(.white.opacity(0.65))
                         
                         BDSlider(
                             value: $builtinResolutionIndex,
@@ -255,17 +436,17 @@ public struct MenuBarView: View {
                 // Expanded Details
                 if isBuiltinExpanded {
                     VStack(spacing: 2) {
-                        menuRow(icon: "rectangle.inset.filled", title: "Display Mode")
-                        menuRow(icon: "paintpalette", title: "Colour Mode")
-                        menuRow(icon: "rectangle.on.rectangle", title: "Mirror Display")
-                        menuRow(icon: "play.rectangle", title: "Stream Display")
-                        menuRow(icon: "pip", title: "Picture in Picture")
-                        menuRow(icon: "arrow.up.and.down.and.arrow.left.and.right", title: "Move Display")
-                        menuRow(icon: "rotate.right", title: "Screen Rotation")
-                        menuRow(icon: "slider.horizontal.3", title: "Image Adjustments")
-                        menuRow(icon: "circle.lefthalf.filled", title: "Colour Profile")
-                        menuRow(icon: "shield", title: "Configuration Protection")
-                        menuRow(icon: "gearshape.2", title: "Manage Display")
+                        MenuRowButton(icon: "rectangle.inset.filled", title: "Display Mode")
+                        MenuRowButton(icon: "paintpalette", title: "Colour Mode")
+                        MenuRowButton(icon: "rectangle.on.rectangle", title: "Mirror Display")
+                        MenuRowButton(icon: "play.rectangle", title: "Stream Display")
+                        MenuRowButton(icon: "pip", title: "Picture in Picture")
+                        MenuRowButton(icon: "arrow.up.and.down.and.arrow.left.and.right", title: "Move Display")
+                        MenuRowButton(icon: "rotate.right", title: "Screen Rotation")
+                        MenuRowButton(icon: "slider.horizontal.3", title: "Image Adjustments")
+                        MenuRowButton(icon: "circle.lefthalf.filled", title: "Colour Profile")
+                        MenuRowButton(icon: "shield", title: "Configuration Protection")
+                        MenuRowButton(icon: "gearshape.2", title: "Manage Display")
                     }
                     .padding(.top, 4)
                     
@@ -294,27 +475,44 @@ public struct MenuBarView: View {
                 
                 // Collapse/Expand Chevron
                 Button(action: {
-                    withAnimation(.easeInOut(duration: 0.2)) {
+                    withAnimation(.spring(response: 0.32, dampingFraction: 0.86)) {
                         isBuiltinExpanded.toggle()
                     }
                 }) {
-                    Image(systemName: isBuiltinExpanded ? "chevron.up" : "chevron.down")
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundColor(.white.opacity(0.5))
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 4)
+                    HStack {
+                        Spacer()
+                        Image(systemName: "chevron.down")
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundColor(.white.opacity(0.5))
+                            .rotationEffect(.degrees(isBuiltinExpanded ? 180 : 0))
+                            .animation(.spring(response: 0.32, dampingFraction: 0.86), value: isBuiltinExpanded)
+                        Spacer()
+                    }
+                    .padding(.vertical, 5)
+                    .contentShape(Rectangle())
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(ApplePressableButtonStyle(scale: 0.96))
             }
         }
         .padding(.bottom, 2)
         .background(
             RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(Color.white.opacity(0.04))
+                .fill(Color.white.opacity(0.045))
                 .overlay(
                     RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .stroke(Color.white.opacity(0.08), lineWidth: 1)
+                        .strokeBorder(
+                            LinearGradient(
+                                colors: [
+                                    Color.white.opacity(0.16),
+                                    Color.white.opacity(0.04)
+                                ],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            ),
+                            lineWidth: 1
+                        )
                 )
+                .shadow(color: Color.black.opacity(0.20), radius: 6, x: 0, y: 2)
         )
     }
     
@@ -330,7 +528,7 @@ public struct MenuBarView: View {
             HStack(spacing: 8) {
                 Image(systemName: "display")
                     .font(.system(size: 13, weight: .semibold))
-                    .foregroundColor(.white.opacity(0.9))
+                    .foregroundColor(.white.opacity(0.95))
                 
                 Text(external?.name ?? "LG HDR 4K")
                     .font(.system(size: 13, weight: .semibold))
@@ -340,6 +538,7 @@ public struct MenuBarView: View {
                     Circle()
                         .fill(Color.blue)
                         .frame(width: 6, height: 6)
+                        .shadow(color: Color.blue.opacity(0.8), radius: 3)
                 }
                 
                 Spacer()
@@ -353,7 +552,24 @@ public struct MenuBarView: View {
             .padding(.vertical, 8)
             .background(
                 RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .fill(Color.white.opacity(0.12))
+                    .fill(
+                        LinearGradient(
+                            colors: [Color.white.opacity(0.14), Color.white.opacity(0.08)],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                            .strokeBorder(
+                                LinearGradient(
+                                    colors: [Color.white.opacity(0.22), Color.white.opacity(0.05)],
+                                    startPoint: .top,
+                                    endPoint: .bottom
+                                ),
+                                lineWidth: 0.8
+                            )
+                    )
             )
             
             // Sliders (Always visible when collapsed)
@@ -363,16 +579,17 @@ public struct MenuBarView: View {
                     HStack {
                         Text("Brightness (Combined)")
                             .font(.system(size: 11, weight: .regular))
-                            .foregroundColor(.white.opacity(0.7))
+                            .foregroundColor(.white.opacity(0.72))
                         Spacer()
                         Text("\(brightness)%")
-                            .font(.system(size: 11, weight: .medium, design: .rounded))
-                            .foregroundColor(.white.opacity(0.9))
+                            .font(.system(size: 11, weight: .semibold, design: .rounded))
+                            .monospacedDigit()
+                            .foregroundColor(.white.opacity(0.95))
                     }
                     HStack(spacing: 8) {
                         Image(systemName: "sun.max")
                             .font(.system(size: 11))
-                            .foregroundColor(.white.opacity(0.6))
+                            .foregroundColor(.white.opacity(0.65))
                         
                         BDSlider(
                             value: Binding(
@@ -396,17 +613,18 @@ public struct MenuBarView: View {
                     HStack {
                         Text("Resolution")
                             .font(.system(size: 11, weight: .regular))
-                            .foregroundColor(.white.opacity(0.7))
+                            .foregroundColor(.white.opacity(0.72))
                         Spacer()
                         let resText = externalResolutions[min(Int(externalResolutionIndex), externalResolutions.count - 1)]
                         Text(resText)
-                            .font(.system(size: 11, weight: .medium, design: .rounded))
-                            .foregroundColor(.white.opacity(0.9))
+                            .font(.system(size: 11, weight: .semibold, design: .rounded))
+                            .monospacedDigit()
+                            .foregroundColor(.white.opacity(0.95))
                     }
                     HStack(spacing: 8) {
                         Image(systemName: "arrow.up.left.and.down.right.and.arrow.up.right.and.down.left")
                             .font(.system(size: 10))
-                            .foregroundColor(.white.opacity(0.6))
+                            .foregroundColor(.white.opacity(0.65))
                         
                         BDSlider(
                             value: $externalResolutionIndex,
@@ -423,16 +641,17 @@ public struct MenuBarView: View {
                     HStack {
                         Text("Audio Volume (DDC)")
                             .font(.system(size: 11, weight: .regular))
-                            .foregroundColor(.white.opacity(0.7))
+                            .foregroundColor(.white.opacity(0.72))
                         Spacer()
                         Text("\(volume)%")
-                            .font(.system(size: 11, weight: .medium, design: .rounded))
-                            .foregroundColor(.white.opacity(0.9))
+                            .font(.system(size: 11, weight: .semibold, design: .rounded))
+                            .monospacedDigit()
+                            .foregroundColor(.white.opacity(0.95))
                     }
                     HStack(spacing: 8) {
                         Image(systemName: "speaker.wave.2.fill")
                             .font(.system(size: 10))
-                            .foregroundColor(.white.opacity(0.6))
+                            .foregroundColor(.white.opacity(0.65))
                         
                         BDSlider(
                             value: Binding(
@@ -444,7 +663,7 @@ public struct MenuBarView: View {
                                 }
                             ),
                             range: 0...100,
-                            tintColor: .purple.opacity(0.8)
+                            tintColor: .purple.opacity(0.85)
                         )
                     }
                 }
@@ -453,40 +672,57 @@ public struct MenuBarView: View {
                 // Expanded Details for LG Monitor
                 if isExternalExpanded {
                     VStack(spacing: 2) {
-                        menuRow(icon: "rectangle.inset.filled", title: "Display Mode")
-                        menuRow(icon: "paintpalette", title: "Colour Mode")
-                        menuRow(icon: "rectangle.on.rectangle", title: "Mirror Display")
-                        menuRow(icon: "rotate.right", title: "Screen Rotation")
-                        menuRow(icon: "slider.horizontal.3", title: "Image Adjustments")
-                        menuRow(icon: "circle.lefthalf.filled", title: "Colour Profile")
-                        menuRow(icon: "gearshape.2", title: "Manage Display")
+                        MenuRowButton(icon: "rectangle.inset.filled", title: "Display Mode")
+                        MenuRowButton(icon: "paintpalette", title: "Colour Mode")
+                        MenuRowButton(icon: "rectangle.on.rectangle", title: "Mirror Display")
+                        MenuRowButton(icon: "rotate.right", title: "Screen Rotation")
+                        MenuRowButton(icon: "slider.horizontal.3", title: "Image Adjustments")
+                        MenuRowButton(icon: "circle.lefthalf.filled", title: "Colour Profile")
+                        MenuRowButton(icon: "gearshape.2", title: "Manage Display")
                     }
                     .padding(.top, 4)
                 }
                 
                 // Collapse/Expand Chevron
                 Button(action: {
-                    withAnimation(.easeInOut(duration: 0.2)) {
+                    withAnimation(.spring(response: 0.32, dampingFraction: 0.86)) {
                         isExternalExpanded.toggle()
                     }
                 }) {
-                    Image(systemName: isExternalExpanded ? "chevron.up" : "chevron.down")
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundColor(.white.opacity(0.5))
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 4)
+                    HStack {
+                        Spacer()
+                        Image(systemName: "chevron.down")
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundColor(.white.opacity(0.5))
+                            .rotationEffect(.degrees(isExternalExpanded ? 180 : 0))
+                            .animation(.spring(response: 0.32, dampingFraction: 0.86), value: isExternalExpanded)
+                        Spacer()
+                    }
+                    .padding(.vertical, 5)
+                    .contentShape(Rectangle())
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(ApplePressableButtonStyle(scale: 0.96))
             }
         }
         .padding(.bottom, 2)
         .background(
             RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(Color.white.opacity(0.04))
+                .fill(Color.white.opacity(0.045))
                 .overlay(
                     RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .stroke(Color.white.opacity(0.08), lineWidth: 1)
+                        .strokeBorder(
+                            LinearGradient(
+                                colors: [
+                                    Color.white.opacity(0.16),
+                                    Color.white.opacity(0.04)
+                                ],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            ),
+                            lineWidth: 1
+                        )
                 )
+                .shadow(color: Color.black.opacity(0.20), radius: 6, x: 0, y: 2)
         )
     }
     
@@ -506,17 +742,38 @@ public struct MenuBarView: View {
                 Spacer()
                 
                 Text("LG DDC/CI")
-                    .font(.system(size: 9, weight: .medium, design: .monospaced))
-                    .foregroundColor(.white.opacity(0.5))
+                    .font(.system(size: 9, weight: .semibold, design: .monospaced))
+                    .foregroundColor(.white.opacity(0.6))
                     .padding(.horizontal, 6)
                     .padding(.vertical, 2)
-                    .background(Capsule().fill(Color.white.opacity(0.08)))
+                    .background(
+                        Capsule()
+                            .fill(Color.white.opacity(0.09))
+                            .overlay(Capsule().stroke(Color.white.opacity(0.1), lineWidth: 0.5))
+                    )
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 7)
             .background(
                 RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .fill(Color.white.opacity(0.10))
+                    .fill(
+                        LinearGradient(
+                            colors: [Color.white.opacity(0.12), Color.white.opacity(0.07)],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                            .strokeBorder(
+                                LinearGradient(
+                                    colors: [Color.white.opacity(0.20), Color.white.opacity(0.05)],
+                                    startPoint: .top,
+                                    endPoint: .bottom
+                                ),
+                                lineWidth: 0.8
+                            )
+                    )
             )
             
             // Port Selection Buttons
@@ -538,25 +795,33 @@ public struct MenuBarView: View {
                                 .foregroundColor(.white.opacity(0.6))
                         }
                         Spacer()
-                        Text("⌥2")
-                            .font(.system(size: 9, weight: .bold, design: .monospaced))
-                            .foregroundColor(.white.opacity(0.85))
-                            .padding(.horizontal, 4)
-                            .padding(.vertical, 2)
-                            .background(RoundedRectangle(cornerRadius: 4).fill(Color.white.opacity(0.15)))
+                        AppleKeycapBadge("⌥2")
                     }
                     .padding(.horizontal, 10)
                     .padding(.vertical, 8)
                     .background(
                         RoundedRectangle(cornerRadius: 10, style: .continuous)
-                            .fill(Color.indigo.opacity(0.25))
+                            .fill(
+                                LinearGradient(
+                                    colors: [Color.indigo.opacity(0.32), Color.indigo.opacity(0.18)],
+                                    startPoint: .top,
+                                    endPoint: .bottom
+                                )
+                            )
                     )
                     .overlay(
                         RoundedRectangle(cornerRadius: 10, style: .continuous)
-                            .stroke(Color.indigo.opacity(0.4), lineWidth: 1)
+                            .strokeBorder(
+                                LinearGradient(
+                                    colors: [Color.indigo.opacity(0.55), Color.indigo.opacity(0.20)],
+                                    startPoint: .top,
+                                    endPoint: .bottom
+                                ),
+                                lineWidth: 1
+                            )
                     )
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(ApplePressableButtonStyle(scale: 0.96))
                 
                 // Mac Button (Type-C)
                 Button(action: {
@@ -575,25 +840,33 @@ public struct MenuBarView: View {
                                 .foregroundColor(.white.opacity(0.6))
                         }
                         Spacer()
-                        Text("⌥1")
-                            .font(.system(size: 9, weight: .bold, design: .monospaced))
-                            .foregroundColor(.white.opacity(0.85))
-                            .padding(.horizontal, 4)
-                            .padding(.vertical, 2)
-                            .background(RoundedRectangle(cornerRadius: 4).fill(Color.white.opacity(0.15)))
+                        AppleKeycapBadge("⌥1")
                     }
                     .padding(.horizontal, 10)
                     .padding(.vertical, 8)
                     .background(
                         RoundedRectangle(cornerRadius: 10, style: .continuous)
-                            .fill(Color.blue.opacity(0.25))
+                            .fill(
+                                LinearGradient(
+                                    colors: [Color.blue.opacity(0.32), Color.blue.opacity(0.18)],
+                                    startPoint: .top,
+                                    endPoint: .bottom
+                                )
+                            )
                     )
                     .overlay(
                         RoundedRectangle(cornerRadius: 10, style: .continuous)
-                            .stroke(Color.blue.opacity(0.4), lineWidth: 1)
+                            .strokeBorder(
+                                LinearGradient(
+                                    colors: [Color.blue.opacity(0.55), Color.blue.opacity(0.20)],
+                                    startPoint: .top,
+                                    endPoint: .bottom
+                                ),
+                                lineWidth: 1
+                            )
                     )
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(ApplePressableButtonStyle(scale: 0.96))
                 
                 // HDMI 1 Button
                 Button(action: {
@@ -606,7 +879,7 @@ public struct MenuBarView: View {
                         VStack(alignment: .leading, spacing: 1) {
                             Text("HDMI 1")
                                 .font(.system(size: 12, weight: .medium))
-                                .foregroundColor(.white.opacity(0.9))
+                                .foregroundColor(.white.opacity(0.92))
                             Text("Port 1")
                                 .font(.system(size: 9))
                                 .foregroundColor(.white.opacity(0.5))
@@ -617,14 +890,27 @@ public struct MenuBarView: View {
                     .padding(.vertical, 8)
                     .background(
                         RoundedRectangle(cornerRadius: 10, style: .continuous)
-                            .fill(Color.white.opacity(0.06))
+                            .fill(
+                                LinearGradient(
+                                    colors: [Color.white.opacity(0.08), Color.white.opacity(0.04)],
+                                    startPoint: .top,
+                                    endPoint: .bottom
+                                )
+                            )
                     )
                     .overlay(
                         RoundedRectangle(cornerRadius: 10, style: .continuous)
-                            .stroke(Color.white.opacity(0.1), lineWidth: 1)
+                            .strokeBorder(
+                                LinearGradient(
+                                    colors: [Color.white.opacity(0.16), Color.white.opacity(0.06)],
+                                    startPoint: .top,
+                                    endPoint: .bottom
+                                ),
+                                lineWidth: 1
+                            )
                     )
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(ApplePressableButtonStyle(scale: 0.96))
                 
                 // DisplayPort Button
                 Button(action: {
@@ -637,7 +923,7 @@ public struct MenuBarView: View {
                         VStack(alignment: .leading, spacing: 1) {
                             Text("DisplayPort")
                                 .font(.system(size: 12, weight: .medium))
-                                .foregroundColor(.white.opacity(0.9))
+                                .foregroundColor(.white.opacity(0.92))
                             Text("DP Port")
                                 .font(.system(size: 9))
                                 .foregroundColor(.white.opacity(0.5))
@@ -648,14 +934,27 @@ public struct MenuBarView: View {
                     .padding(.vertical, 8)
                     .background(
                         RoundedRectangle(cornerRadius: 10, style: .continuous)
-                            .fill(Color.white.opacity(0.06))
+                            .fill(
+                                LinearGradient(
+                                    colors: [Color.white.opacity(0.08), Color.white.opacity(0.04)],
+                                    startPoint: .top,
+                                    endPoint: .bottom
+                                )
+                            )
                     )
                     .overlay(
                         RoundedRectangle(cornerRadius: 10, style: .continuous)
-                            .stroke(Color.white.opacity(0.1), lineWidth: 1)
+                            .strokeBorder(
+                                LinearGradient(
+                                    colors: [Color.white.opacity(0.16), Color.white.opacity(0.06)],
+                                    startPoint: .top,
+                                    endPoint: .bottom
+                                ),
+                                lineWidth: 1
+                            )
                     )
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(ApplePressableButtonStyle(scale: 0.96))
             }
             .padding(.horizontal, 8)
             .padding(.bottom, 6)
@@ -666,16 +965,28 @@ public struct MenuBarView: View {
                     .foregroundColor(.blue)
                     .padding(.horizontal, 10)
                     .padding(.bottom, 4)
+                    .transition(.opacity.combined(with: .scale(scale: 0.96)))
             }
         }
         .padding(.bottom, 2)
         .background(
             RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(Color.white.opacity(0.04))
+                .fill(Color.white.opacity(0.045))
                 .overlay(
                     RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .stroke(Color.white.opacity(0.08), lineWidth: 1)
+                        .strokeBorder(
+                            LinearGradient(
+                                colors: [
+                                    Color.white.opacity(0.16),
+                                    Color.white.opacity(0.04)
+                                ],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            ),
+                            lineWidth: 1
+                        )
                 )
+                .shadow(color: Color.black.opacity(0.20), radius: 6, x: 0, y: 2)
         )
     }
     
@@ -684,14 +995,14 @@ public struct MenuBarView: View {
         VStack(spacing: 0) {
             // Header Pill: (...) Tools
             Button(action: {
-                withAnimation(.easeInOut(duration: 0.2)) {
+                withAnimation(.spring(response: 0.32, dampingFraction: 0.86)) {
                     isToolsExpanded = false
                 }
             }) {
                 HStack(spacing: 8) {
                     Image(systemName: "ellipsis.circle.fill")
                         .font(.system(size: 13))
-                        .foregroundColor(.white.opacity(0.85))
+                        .foregroundColor(.white.opacity(0.90))
                     
                     Text("Tools")
                         .font(.system(size: 12, weight: .semibold))
@@ -703,61 +1014,44 @@ public struct MenuBarView: View {
                 .padding(.vertical, 8)
                 .background(
                     RoundedRectangle(cornerRadius: 10, style: .continuous)
-                        .fill(Color.white.opacity(0.12))
+                        .fill(
+                            LinearGradient(
+                                colors: [Color.white.opacity(0.14), Color.white.opacity(0.08)],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                .strokeBorder(
+                                    LinearGradient(
+                                        colors: [Color.white.opacity(0.22), Color.white.opacity(0.05)],
+                                        startPoint: .top,
+                                        endPoint: .bottom
+                                    ),
+                                    lineWidth: 0.8
+                                )
+                        )
                 )
             }
-            .buttonStyle(.plain)
+            .buttonStyle(ApplePressableButtonStyle(scale: 0.97))
             .padding(.horizontal, 4)
             .padding(.top, 4)
             .padding(.bottom, 2)
             
             // Menu Items List
             VStack(spacing: 2) {
-                menuRow(icon: "display.2", title: "Displays And Virtual Screens")
-                menuRow(icon: "arrow.uturn.right.square", title: "Video Filter Window")
-                menuRow(icon: "circle.circle", title: "System Colours")
+                MenuRowButton(icon: "display.2", title: "Displays And Virtual Screens")
+                MenuRowButton(icon: "arrow.uturn.right.square", title: "Video Filter Window")
+                MenuRowButton(icon: "circle.circle", title: "System Colours")
                 
-                Button(action: {
+                MenuRowButton(icon: "arrow.down.circle", title: "Check for Updates") {
                     displayManager.refreshDisplays()
-                }) {
-                    HStack(spacing: 8) {
-                        Image(systemName: "arrow.down.circle")
-                            .font(.system(size: 12))
-                            .foregroundColor(.white.opacity(0.75))
-                            .frame(width: 18, alignment: .center)
-                        
-                        Text("Check for Updates")
-                            .font(.system(size: 11, weight: .regular))
-                            .foregroundColor(.white.opacity(0.9))
-                        
-                        Spacer()
-                    }
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 6)
-                    .contentShape(Rectangle())
                 }
-                .buttonStyle(.plain)
                 
-                Button(action: {
+                MenuRowButton(icon: "xmark.circle", title: "Quit ResX Pro") {
                     NSApplication.shared.terminate(nil)
-                }) {
-                    HStack(spacing: 8) {
-                        Image(systemName: "xmark.circle")
-                            .font(.system(size: 12))
-                            .foregroundColor(.white.opacity(0.75))
-                            .frame(width: 18, alignment: .center)
-                        
-                        Text("Quit ResX Pro")
-                            .font(.system(size: 11, weight: .regular))
-                            .foregroundColor(.white.opacity(0.9))
-                        
-                        Spacer()
-                    }
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 6)
-                    .contentShape(Rectangle())
                 }
-                .buttonStyle(.plain)
             }
             .padding(.top, 2)
             .padding(.bottom, 4)
@@ -765,11 +1059,22 @@ public struct MenuBarView: View {
         .padding(.bottom, 4)
         .background(
             RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(Color.white.opacity(0.04))
+                .fill(Color.white.opacity(0.045))
                 .overlay(
                     RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .stroke(Color.white.opacity(0.08), lineWidth: 1)
+                        .strokeBorder(
+                            LinearGradient(
+                                colors: [
+                                    Color.white.opacity(0.16),
+                                    Color.white.opacity(0.04)
+                                ],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            ),
+                            lineWidth: 1
+                        )
                 )
+                .shadow(color: Color.black.opacity(0.20), radius: 6, x: 0, y: 2)
         )
     }
     
@@ -784,75 +1089,87 @@ public struct MenuBarView: View {
                 HStack(spacing: 5) {
                     Image(systemName: isAccessibilityGranted ? "checkmark.circle.fill" : "figure.stand")
                         .font(.system(size: 11))
-                        .foregroundColor(isAccessibilityGranted ? .green : .white.opacity(0.8))
+                        .foregroundColor(isAccessibilityGranted ? .green : .white.opacity(0.85))
                     
                     Text(isAccessibilityGranted ? "Permissions Active" : "Set Up Permissions")
                         .font(.system(size: 11, weight: .medium))
-                        .foregroundColor(.white.opacity(0.85))
+                        .foregroundColor(.white.opacity(0.88))
                 }
                 .padding(.horizontal, 10)
                 .padding(.vertical, 6)
                 .background(
                     Capsule()
-                        .fill(Color.white.opacity(0.08))
+                        .fill(
+                            LinearGradient(
+                                colors: [Color.white.opacity(0.12), Color.white.opacity(0.06)],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                        )
+                        .overlay(
+                            Capsule()
+                                .strokeBorder(
+                                    LinearGradient(
+                                        colors: [Color.white.opacity(0.20), Color.white.opacity(0.05)],
+                                        startPoint: .top,
+                                        endPoint: .bottom
+                                    ),
+                                    lineWidth: 0.8
+                                )
+                        )
                 )
             }
-            .buttonStyle(.plain)
+            .buttonStyle(ApplePressableButtonStyle(scale: 0.96))
             
             Spacer()
             
             Button(action: {}) {
                 Image(systemName: "gearshape")
                     .font(.system(size: 12))
-                    .foregroundColor(.white.opacity(0.7))
+                    .foregroundColor(.white.opacity(0.75))
                     .frame(width: 26, height: 26)
-                    .background(Circle().fill(Color.white.opacity(0.08)))
+                    .background(
+                        Circle()
+                            .fill(Color.white.opacity(0.08))
+                            .overlay(Circle().stroke(Color.white.opacity(0.12), lineWidth: 0.6))
+                    )
             }
-            .buttonStyle(.plain)
+            .buttonStyle(ApplePressableButtonStyle(scale: 0.94))
             
             Button(action: {
-                withAnimation(.easeInOut(duration: 0.22)) {
+                withAnimation(.spring(response: 0.32, dampingFraction: 0.86)) {
                     isToolsExpanded.toggle()
                 }
             }) {
                 Image(systemName: "ellipsis")
                     .font(.system(size: 12))
-                    .foregroundColor(.white.opacity(isToolsExpanded ? 1.0 : 0.7))
+                    .foregroundColor(.white.opacity(isToolsExpanded ? 1.0 : 0.75))
                     .frame(width: 26, height: 26)
                     .background(
-                        Circle().fill(Color.white.opacity(isToolsExpanded ? 0.22 : 0.08))
+                        Circle()
+                            .fill(
+                                LinearGradient(
+                                    colors: isToolsExpanded ?
+                                        [Color.white.opacity(0.26), Color.white.opacity(0.16)] :
+                                        [Color.white.opacity(0.10), Color.white.opacity(0.05)],
+                                    startPoint: .top,
+                                    endPoint: .bottom
+                                )
+                            )
+                            .overlay(
+                                Circle()
+                                    .stroke(Color.white.opacity(isToolsExpanded ? 0.3 : 0.12), lineWidth: 0.6)
+                            )
                     )
                     .contentShape(Circle())
             }
-            .buttonStyle(.plain)
+            .buttonStyle(ApplePressableButtonStyle(scale: 0.94))
         }
         .padding(.horizontal, 4)
         .padding(.top, 2)
     }
     
     // MARK: - Helper Views
-    
-    private func menuRow(icon: String, title: String) -> some View {
-        HStack(spacing: 8) {
-            Image(systemName: icon)
-                .font(.system(size: 12))
-                .foregroundColor(.white.opacity(0.75))
-                .frame(width: 18, alignment: .center)
-            
-            Text(title)
-                .font(.system(size: 11, weight: .regular))
-                .foregroundColor(.white.opacity(0.9))
-            
-            Spacer()
-            
-            Image(systemName: "chevron.right")
-                .font(.system(size: 9, weight: .semibold))
-                .foregroundColor(.white.opacity(0.4))
-        }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 5)
-        .contentShape(Rectangle())
-    }
     
     private func actionRow(icon: String, title: String, isOn: Binding<Bool>, iconColor: Color) -> some View {
         HStack(spacing: 8) {
@@ -863,7 +1180,7 @@ public struct MenuBarView: View {
             
             Text(title)
                 .font(.system(size: 11, weight: .regular))
-                .foregroundColor(.white.opacity(0.9))
+                .foregroundColor(.white.opacity(0.92))
             
             Spacer()
         }
@@ -873,12 +1190,16 @@ public struct MenuBarView: View {
     }
     
     private func switchInput(port: String, displayName: String) {
-        statusMessage = "Switching monitor to \(displayName)..."
+        withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
+            statusMessage = "Switching monitor to \(displayName)..."
+        }
         let success = displayManager.switchInput(portName: port)
-        if success {
-            statusMessage = "✅ Switched to \(displayName)!"
-        } else {
-            statusMessage = "⚠️ Command sent (monitor should switch to \(displayName))"
+        withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
+            if success {
+                statusMessage = "✅ Switched to \(displayName)!"
+            } else {
+                statusMessage = "⚠️ Command sent (monitor should switch to \(displayName))"
+            }
         }
     }
 }
