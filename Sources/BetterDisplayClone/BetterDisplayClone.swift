@@ -25,12 +25,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
     
     func applicationDidFinishLaunching(_ notification: Notification) {
-        print("🚀 BetterDisplay Clone starting...")
+        print("🚀 ResX Pro starting...")
         
         // Setup Status Item in Menu Bar
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         if let button = item.button {
-            button.image = NSImage(systemSymbolName: "display.2", accessibilityDescription: "BetterDisplay Pro")
+            button.image = NSImage(systemSymbolName: "display.2", accessibilityDescription: "ResX Pro")
             button.action = #selector(togglePopover)
             button.target = self
         }
@@ -52,7 +52,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Start Global Media Key & Hotkey Interceptor
         MediaKeyInterceptor.shared.start()
         
-        print("✅ BetterDisplay Clone running in menu bar. Press F1/F2 or click the menu bar icon.")
+        print("✅ ResX Pro running in menu bar. Press F1/F2 or click the menu bar icon.")
     }
     
     @objc func togglePopover() {

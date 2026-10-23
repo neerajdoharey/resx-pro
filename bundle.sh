@@ -1,22 +1,22 @@
 #!/usr/bin/env bash
 set -e
 
-echo "🔨 Building BetterDisplayClone in Release configuration..."
+echo "🔨 Building ResX Pro in Release configuration..."
 swift build -c release
 
-APP_NAME="BetterDisplayClone"
+APP_NAME="ResX Pro"
 APP_DIR="${APP_NAME}.app"
 CONTENTS_DIR="${APP_DIR}/Contents"
 MACOS_DIR="${CONTENTS_DIR}/MacOS"
 RESOURCES_DIR="${CONTENTS_DIR}/Resources"
 
 echo "📦 Creating macOS .app bundle structure..."
-rm -rf "${APP_DIR}"
+rm -rf "${APP_DIR}" BetterDisplayClone.app
 mkdir -p "${MACOS_DIR}"
 mkdir -p "${RESOURCES_DIR}"
 
 # Copy compiled executable
-cp ".build/release/${APP_NAME}" "${MACOS_DIR}/${APP_NAME}"
+cp ".build/release/BetterDisplayClone" "${MACOS_DIR}/ResX Pro"
 
 # Create Info.plist
 cat << 'EOF' > "${CONTENTS_DIR}/Info.plist"
@@ -27,13 +27,13 @@ cat << 'EOF' > "${CONTENTS_DIR}/Info.plist"
     <key>CFBundleDevelopmentRegion</key>
     <string>en</string>
     <key>CFBundleExecutable</key>
-    <string>BetterDisplayClone</string>
+    <string>ResX Pro</string>
     <key>CFBundleIdentifier</key>
-    <string>com.neeraj.BetterDisplayClone</string>
+    <string>com.neeraj.ResXPro</string>
     <key>CFBundleInfoDictionaryVersion</key>
     <string>6.0</string>
     <key>CFBundleName</key>
-    <string>BetterDisplayClone</string>
+    <string>ResX Pro</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
@@ -58,4 +58,4 @@ echo "✍️ Ad-hoc codesigning app bundle..."
 codesign --force --deep --sign - "${APP_DIR}"
 
 echo "✅ Successfully built ${APP_DIR}!"
-echo "You can launch it via: open ${APP_DIR}"
+echo "You can launch it via: open \"${APP_DIR}\""

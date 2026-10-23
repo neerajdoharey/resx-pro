@@ -1,4 +1,4 @@
-# BetterDisplay Pro Clone (macOS)
+# ResX Pro (macOS)
 
 A high-performance macOS utility built in **Swift 6** and **SwiftUI** designed for Apple Silicon (M1/M2/M3/M4) Macs to control external monitors using **DDC/CI over IOAVService**.
 
@@ -21,7 +21,7 @@ A high-performance macOS utility built in **Swift 6** and **SwiftUI** designed f
 
 ### 3. External Monitor Audio Volume Control
 - macOS normally disables volume keys for external monitors.
-- BetterDisplay Clone controls your LG monitor speakers over DDC/CI **VCP Code `0x62`**.
+- ResX Pro controls your LG monitor speakers over DDC/CI **VCP Code `0x62`**.
 
 ### 4. Sleek Menu Bar Control Center
 - Real-time indicator displaying which screen currently has the cursor.
@@ -41,7 +41,7 @@ swift run
 
 # Or build & launch the release .app bundle:
 ./bundle.sh
-open BetterDisplayClone.app
+open "ResX Pro.app"
 ```
 
 ### Option B: Use the Terminal CLI

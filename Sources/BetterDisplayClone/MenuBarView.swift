@@ -747,7 +747,7 @@ public struct MenuBarView: View {
                             .foregroundColor(.white.opacity(0.75))
                             .frame(width: 18, alignment: .center)
                         
-                        Text("Quit BetterDisplay")
+                        Text("Quit ResX Pro")
                             .font(.system(size: 11, weight: .regular))
                             .foregroundColor(.white.opacity(0.9))
                         
