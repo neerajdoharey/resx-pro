@@ -792,6 +792,7 @@ public struct MenuBarView: View {
         HStack(spacing: 8) {
             Button(action: {
                 MediaKeyInterceptor.requestAccessibilityPermissions()
+                MediaKeyInterceptor.shared.start()
                 isAccessibilityGranted = MediaKeyInterceptor.isAccessibilityTrusted()
             }) {
                 HStack(spacing: 5) {

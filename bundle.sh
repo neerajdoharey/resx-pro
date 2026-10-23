@@ -54,5 +54,8 @@ cat << 'EOF' > "${CONTENTS_DIR}/Info.plist"
 </plist>
 EOF
 
+echo "✍️ Ad-hoc codesigning app bundle..."
+codesign --force --deep --sign - "${APP_DIR}"
+
 echo "✅ Successfully built ${APP_DIR}!"
 echo "You can launch it via: open ${APP_DIR}"

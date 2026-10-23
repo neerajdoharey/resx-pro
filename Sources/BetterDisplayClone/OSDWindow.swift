@@ -60,6 +60,32 @@ public final class OSDManager {
         }
     }
     
+    public func showStatus(title: String, subtitle: String, icon: String, screen: NSScreen? = nil) {
+        guard let panel = self.panel else { return }
+        let targetScreen = screen ?? ScreenDetector.getScreenUnderMouse() ?? NSScreen.main
+        
+        let statusView = OSDStatusView(title: title, subtitle: subtitle, icon: icon)
+        panel.contentView = NSHostingView(rootView: statusView)
+        self.hostingView = nil
+        
+        if let s = targetScreen {
+            let screenRect = s.frame
+            let x = screenRect.origin.x + (screenRect.width - 220) / 2
+            let y = screenRect.origin.y + 140
+            panel.setFrameOrigin(NSPoint(x: x, y: y))
+        }
+        
+        panel.alphaValue = 1.0
+        panel.orderFrontRegardless()
+        
+        dismissTimer?.invalidate()
+        dismissTimer = Timer.scheduledTimer(withTimeInterval: 1.5, repeats: false) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                self?.fadeOut()
+            }
+        }
+    }
+    
     private func fadeOut() {
         NSAnimationContext.runAnimationGroup { context in
             context.duration = 0.25
@@ -107,6 +133,44 @@ public struct OSDView: View {
                 .foregroundColor(.white.opacity(0.9))
         }
         .padding(.vertical, 18)
+        .frame(width: 200, height: 200)
+        .background(
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .fill(.ultraThinMaterial)
+                .shadow(color: .black.opacity(0.4), radius: 16, x: 0, y: 8)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 24, style: .continuous)
+                        .stroke(Color.white.opacity(0.15), lineWidth: 1)
+                )
+        )
+        .preferredColorScheme(.dark)
+    }
+}
+
+public struct OSDStatusView: View {
+    let title: String
+    let subtitle: String
+    let icon: String
+    
+    public var body: some View {
+        VStack(spacing: 12) {
+            Text(title)
+                .font(.system(size: 13, weight: .medium, design: .rounded))
+                .foregroundColor(.white.opacity(0.85))
+                .lineLimit(1)
+            
+            Image(systemName: icon)
+                .font(.system(size: 48, weight: .regular))
+                .foregroundColor(.white)
+                .shadow(color: .black.opacity(0.3), radius: 4, x: 0, y: 2)
+            
+            Text(subtitle)
+                .font(.system(size: 13, weight: .semibold, design: .rounded))
+                .foregroundColor(.white)
+                .multilineTextAlignment(.center)
+        }
+        .padding(.vertical, 18)
+        .padding(.horizontal, 16)
         .frame(width: 200, height: 200)
         .background(
             RoundedRectangle(cornerRadius: 24, style: .continuous)
