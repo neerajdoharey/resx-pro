@@ -682,21 +682,6 @@ public struct MenuBarView: View {
     // MARK: - 4. Tools Section
     private var toolsSection: some View {
         VStack(spacing: 0) {
-            // Top collapse indicator chevron (matches screenshot 1)
-            Button(action: {
-                withAnimation(.easeInOut(duration: 0.2)) {
-                    isToolsExpanded = false
-                }
-            }) {
-                Image(systemName: "chevron.down")
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundColor(.white.opacity(0.6))
-                    .frame(maxWidth: .infinity)
-                    .padding(.top, 4)
-                    .padding(.bottom, 2)
-            }
-            .buttonStyle(.plain)
-            
             // Header Pill: (...) Tools
             Button(action: {
                 withAnimation(.easeInOut(duration: 0.2)) {
@@ -723,6 +708,7 @@ public struct MenuBarView: View {
             }
             .buttonStyle(.plain)
             .padding(.horizontal, 4)
+            .padding(.top, 4)
             .padding(.bottom, 2)
             
             // Menu Items List
