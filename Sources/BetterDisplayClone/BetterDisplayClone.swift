@@ -30,7 +30,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Setup Status Item in Menu Bar
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         if let button = item.button {
-            button.image = NSImage(systemSymbolName: "display.2", accessibilityDescription: "ResX Pro")
+            button.image = Self.loadMenuBarIcon()
             button.action = #selector(togglePopover)
             button.target = self
         }
@@ -63,6 +63,33 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             p.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
             p.contentViewController?.view.window?.makeKey()
         }
+    }
+    
+    private static func loadMenuBarIcon() -> NSImage {
+        // Try MenuBarIcon.png from bundle resources
+        if let url = Bundle.main.url(forResource: "MenuBarIcon", withExtension: "png"),
+           let img = NSImage(contentsOf: url) {
+            img.size = NSSize(width: 18, height: 18)
+            img.isTemplate = false
+            return img
+        }
+        // Try AppIcon.icns from bundle resources
+        if let url = Bundle.main.url(forResource: "AppIcon", withExtension: "icns"),
+           let img = NSImage(contentsOf: url) {
+            img.size = NSSize(width: 18, height: 18)
+            img.isTemplate = false
+            return img
+        }
+        // Try local development resources paths
+        for path in ["Resources/MenuBarIcon.png", "Resources/AppIcon.png"] {
+            if FileManager.default.fileExists(atPath: path),
+               let img = NSImage(contentsOfFile: path) {
+                img.size = NSSize(width: 18, height: 18)
+                img.isTemplate = false
+                return img
+            }
+        }
+        return NSImage(systemSymbolName: "display.2", accessibilityDescription: "ResX Pro") ?? NSImage()
     }
     
     // MARK: - CLI Mode
