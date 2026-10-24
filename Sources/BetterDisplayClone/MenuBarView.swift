@@ -178,7 +178,7 @@ public struct BDSlider: View {
                     .offset(x: max(0, min(totalWidth - thumbDiameter, fillWidth - (thumbDiameter / 2.0))))
                     .animation(.spring(response: 0.22, dampingFraction: 0.72), value: isDragging)
             }
-            .frame(height: 16)
+            .frame(height: 24)
             .contentShape(Rectangle())
             .gesture(
                 DragGesture(minimumDistance: 0)
@@ -209,7 +209,7 @@ public struct BDSlider: View {
                     }
             )
         }
-        .frame(height: 16)
+        .frame(height: 24)
     }
 }
 
@@ -278,6 +278,12 @@ public struct MenuBarView: View {
                         }
                     }
                 }
+            }
+        }
+        .task {
+            while !Task.isCancelled {
+                displayManager.refreshInputState()
+                try? await Task.sleep(for: .seconds(5))
             }
         }
         .frame(width: 330)
@@ -473,25 +479,7 @@ public struct MenuBarView: View {
                     .padding(.top, 4)
                 }
                 
-                // Collapse/Expand Chevron
-                Button(action: {
-                    withAnimation(.spring(response: 0.32, dampingFraction: 0.86)) {
-                        isBuiltinExpanded.toggle()
-                    }
-                }) {
-                    HStack {
-                        Spacer()
-                        Image(systemName: "chevron.down")
-                            .font(.system(size: 10, weight: .semibold))
-                            .foregroundColor(.white.opacity(0.5))
-                            .rotationEffect(.degrees(isBuiltinExpanded ? 180 : 0))
-                            .animation(.spring(response: 0.32, dampingFraction: 0.86), value: isBuiltinExpanded)
-                        Spacer()
-                    }
-                    .padding(.vertical, 5)
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(ApplePressableButtonStyle(scale: 0.96))
+                disclosureButton(expanded: $isBuiltinExpanded, title: "Built-in display")
             }
         }
         .padding(.bottom, 2)
@@ -683,25 +671,7 @@ public struct MenuBarView: View {
                     .padding(.top, 4)
                 }
                 
-                // Collapse/Expand Chevron
-                Button(action: {
-                    withAnimation(.spring(response: 0.32, dampingFraction: 0.86)) {
-                        isExternalExpanded.toggle()
-                    }
-                }) {
-                    HStack {
-                        Spacer()
-                        Image(systemName: "chevron.down")
-                            .font(.system(size: 10, weight: .semibold))
-                            .foregroundColor(.white.opacity(0.5))
-                            .rotationEffect(.degrees(isExternalExpanded ? 180 : 0))
-                            .animation(.spring(response: 0.32, dampingFraction: 0.86), value: isExternalExpanded)
-                        Spacer()
-                    }
-                    .padding(.vertical, 5)
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(ApplePressableButtonStyle(scale: 0.96))
+                disclosureButton(expanded: $isExternalExpanded, title: "External display")
             }
         }
         .padding(.bottom, 2)
@@ -776,190 +746,28 @@ public struct MenuBarView: View {
                     )
             )
             
-            // Port Selection Buttons
+            // Port Selection Buttons: supported connectors are separate from device presence.
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 7) {
-                // PS5 Button (HDMI 2)
-                Button(action: {
-                    switchInput(port: "hdmi2", displayName: "PS5 (HDMI 2)")
-                }) {
-                    HStack(spacing: 6) {
-                        Image(systemName: "gamecontroller.fill")
-                            .font(.system(size: 13))
-                            .foregroundColor(.indigo)
-                        VStack(alignment: .leading, spacing: 1) {
-                            Text("PS5")
-                                .font(.system(size: 12, weight: .semibold))
-                                .foregroundColor(.white)
-                            Text("HDMI 2")
-                                .font(.system(size: 9))
-                                .foregroundColor(.white.opacity(0.6))
-                        }
-                        Spacer()
-                        AppleKeycapBadge("⌥2")
+                ForEach(displayManager.availableInputs) { input in
+                    Button {
+                        selectInput(input)
+                    } label: {
+                        inputButtonLabel(input)
                     }
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 8)
-                    .background(
-                        RoundedRectangle(cornerRadius: 10, style: .continuous)
-                            .fill(
-                                LinearGradient(
-                                    colors: [Color.indigo.opacity(0.32), Color.indigo.opacity(0.18)],
-                                    startPoint: .top,
-                                    endPoint: .bottom
-                                )
-                            )
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 10, style: .continuous)
-                            .strokeBorder(
-                                LinearGradient(
-                                    colors: [Color.indigo.opacity(0.55), Color.indigo.opacity(0.20)],
-                                    startPoint: .top,
-                                    endPoint: .bottom
-                                ),
-                                lineWidth: 1
-                            )
-                    )
+                    .buttonStyle(ApplePressableButtonStyle(scale: 0.97))
+                    .disabled(displayManager.isSwitchingInput)
+                    .onHover { if $0 { NSCursor.pointingHand.set() } else { NSCursor.arrow.set() } }
                 }
-                .buttonStyle(ApplePressableButtonStyle(scale: 0.96))
-                
-                // Mac Button (Type-C)
-                Button(action: {
-                    switchInput(port: "mac", displayName: "Mac (Type-C)")
-                }) {
-                    HStack(spacing: 6) {
-                        Image(systemName: "laptopcomputer")
-                            .font(.system(size: 13))
-                            .foregroundColor(.blue)
-                        VStack(alignment: .leading, spacing: 1) {
-                            Text("Mac M1")
-                                .font(.system(size: 12, weight: .semibold))
-                                .foregroundColor(.white)
-                            Text("Type-C")
-                                .font(.system(size: 9))
-                                .foregroundColor(.white.opacity(0.6))
-                        }
-                        Spacer()
-                        AppleKeycapBadge("⌥1")
-                    }
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 8)
-                    .background(
-                        RoundedRectangle(cornerRadius: 10, style: .continuous)
-                            .fill(
-                                LinearGradient(
-                                    colors: [Color.blue.opacity(0.32), Color.blue.opacity(0.18)],
-                                    startPoint: .top,
-                                    endPoint: .bottom
-                                )
-                            )
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 10, style: .continuous)
-                            .strokeBorder(
-                                LinearGradient(
-                                    colors: [Color.blue.opacity(0.55), Color.blue.opacity(0.20)],
-                                    startPoint: .top,
-                                    endPoint: .bottom
-                                ),
-                                lineWidth: 1
-                            )
-                    )
-                }
-                .buttonStyle(ApplePressableButtonStyle(scale: 0.96))
-                
-                // HDMI 1 Button
-                Button(action: {
-                    switchInput(port: "hdmi1", displayName: "HDMI 1")
-                }) {
-                    HStack(spacing: 6) {
-                        Image(systemName: "tv.fill")
-                            .font(.system(size: 12))
-                            .foregroundColor(.secondary)
-                        VStack(alignment: .leading, spacing: 1) {
-                            Text("HDMI 1")
-                                .font(.system(size: 12, weight: .medium))
-                                .foregroundColor(.white.opacity(0.92))
-                            Text("Port 1")
-                                .font(.system(size: 9))
-                                .foregroundColor(.white.opacity(0.5))
-                        }
-                        Spacer()
-                    }
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 8)
-                    .background(
-                        RoundedRectangle(cornerRadius: 10, style: .continuous)
-                            .fill(
-                                LinearGradient(
-                                    colors: [Color.white.opacity(0.08), Color.white.opacity(0.04)],
-                                    startPoint: .top,
-                                    endPoint: .bottom
-                                )
-                            )
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 10, style: .continuous)
-                            .strokeBorder(
-                                LinearGradient(
-                                    colors: [Color.white.opacity(0.16), Color.white.opacity(0.06)],
-                                    startPoint: .top,
-                                    endPoint: .bottom
-                                ),
-                                lineWidth: 1
-                            )
-                    )
-                }
-                .buttonStyle(ApplePressableButtonStyle(scale: 0.96))
-                
-                // DisplayPort Button
-                Button(action: {
-                    switchInput(port: "dp", displayName: "DisplayPort")
-                }) {
-                    HStack(spacing: 6) {
-                        Image(systemName: "display")
-                            .font(.system(size: 12))
-                            .foregroundColor(.secondary)
-                        VStack(alignment: .leading, spacing: 1) {
-                            Text("DisplayPort")
-                                .font(.system(size: 12, weight: .medium))
-                                .foregroundColor(.white.opacity(0.92))
-                            Text("DP Port")
-                                .font(.system(size: 9))
-                                .foregroundColor(.white.opacity(0.5))
-                        }
-                        Spacer()
-                    }
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 8)
-                    .background(
-                        RoundedRectangle(cornerRadius: 10, style: .continuous)
-                            .fill(
-                                LinearGradient(
-                                    colors: [Color.white.opacity(0.08), Color.white.opacity(0.04)],
-                                    startPoint: .top,
-                                    endPoint: .bottom
-                                )
-                            )
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 10, style: .continuous)
-                            .strokeBorder(
-                                LinearGradient(
-                                    colors: [Color.white.opacity(0.16), Color.white.opacity(0.06)],
-                                    startPoint: .top,
-                                    endPoint: .bottom
-                                ),
-                                lineWidth: 1
-                            )
-                    )
-                }
-                .buttonStyle(ApplePressableButtonStyle(scale: 0.96))
             }
-            .padding(.horizontal, 8)
-            .padding(.bottom, 6)
-            
-            if let msg = statusMessage {
+            Text(displayManager.inputProfileName != nil
+                 ? "LG 32UN650-W · HDMI 1, HDMI 2, DisplayPort. Device presence is not reported."
+                 : "Gray means not selected; DDC cannot confirm attached device power.")
+                .font(.system(size: 9))
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, 10)
+
+
+            if let msg = displayManager.inputStatus ?? statusMessage {
                 Text(msg)
                     .font(.system(size: 10, weight: .medium))
                     .foregroundColor(.blue)
@@ -1200,6 +1008,69 @@ public struct MenuBarView: View {
             } else {
                 statusMessage = "⚠️ Command sent (monitor should switch to \(displayName))"
             }
+        }
+    }
+
+    private func disclosureButton(expanded: Binding<Bool>, title: String) -> some View {
+        Button {
+            withAnimation(.spring(response: 0.32, dampingFraction: 0.86)) { expanded.wrappedValue.toggle() }
+        } label: {
+            HStack(spacing: 6) {
+                Text(expanded.wrappedValue ? "Less" : "More")
+                Image(systemName: "chevron.down")
+                    .rotationEffect(.degrees(expanded.wrappedValue ? 180 : 0))
+            }
+            .font(.system(size: 11, weight: .semibold))
+            .foregroundStyle(.white.opacity(0.8))
+            .frame(maxWidth: .infinity, minHeight: 32)
+            .contentShape(Rectangle())
+            .background(RoundedRectangle(cornerRadius: 8).fill(.white.opacity(0.06)))
+        }
+        .buttonStyle(ApplePressableButtonStyle(scale: 0.98))
+        .accessibilityLabel("\(expanded.wrappedValue ? "Collapse" : "Expand") \(title) details")
+        .onHover { if $0 { NSCursor.pointingHand.set() } else { NSCursor.arrow.set() } }
+    }
+
+    private func iconForInput(_ input: DisplayInput) -> String {
+        switch input.kind {
+        case .hdmi: return "tv.fill"
+        case .displayPort: return "display"
+        case .usb: return "cable.connector"
+        case .other: return "display"
+        }
+    }
+
+    private func inputButtonLabel(_ input: DisplayInput) -> some View {
+        let current = displayManager.displays.first(where: { !$0.isBuiltin })?.inputSource
+        let selected = current == input.code
+        let shade = displayManager.displays.first(where: { !$0.isBuiltin })?.brightness ?? 50
+        let title = input.name
+        return HStack(spacing: 7) {
+            Image(systemName: iconForInput(input))
+                .foregroundStyle(selected ? Color.green : Color.secondary)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title).font(.system(size: 11, weight: .semibold))
+                Text(selected ? (shade <= -200 ? "Selected · Mac blacked out" : "Selected") : (current == nil ? "Status unknown" : "Not selected"))
+                    .font(.system(size: 9)).foregroundStyle(selected ? Color.green : Color.secondary)
+            }
+            Spacer(minLength: 0)
+            if selected { Image(systemName: shade <= -200 ? "moon.fill" : "checkmark.circle.fill").foregroundStyle(shade <= -200 ? .orange : .green) }
+        }
+        .foregroundStyle(.white.opacity(selected ? 1 : 0.72))
+        .padding(.horizontal, 9)
+        .frame(maxWidth: .infinity, minHeight: 48)
+        .background(RoundedRectangle(cornerRadius: 9).fill(selected ? Color.green.opacity(0.16) : Color.white.opacity(0.055)))
+        .overlay(RoundedRectangle(cornerRadius: 9).stroke(selected ? Color.green.opacity(0.55) : Color.white.opacity(0.12), lineWidth: 1))
+        .contentShape(Rectangle())
+    }
+
+    private func selectInput(_ input: DisplayInput) {
+        guard let external = displayManager.displays.first(where: { !$0.isBuiltin }) else { return }
+        if external.inputSource == input.code {
+            if external.brightness <= -200 { displayManager.wakeSleepingDisplays(targetDisplayID: external.id) }
+            else { displayManager.setBrightness(displayID: external.id, value: -200) }
+        } else {
+            displayManager.switchInputAsync(input: input)
         }
     }
 }

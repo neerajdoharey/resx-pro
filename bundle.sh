@@ -59,12 +59,28 @@ cat << 'EOF' > "${CONTENTS_DIR}/Info.plist"
     <true/>
     <key>NSHumanReadableCopyright</key>
     <string>Copyright © 2026. All rights reserved.</string>
+    <key>NSAppleEventsUsageDescription</key>
+    <string>ResX Pro requires accessibility and event permissions to intercept brightness keys and adjust displays.</string>
 </dict>
 </plist>
 EOF
 
-echo "✍️ Ad-hoc codesigning app bundle..."
-codesign --force --deep --sign - "${APP_DIR}"
+SIGN_IDENTITY=$(security find-identity -v -p codesigning | grep "Blueant Local Development" | head -n 1 | awk -F'"' '{print $2}')
+if [ -z "$SIGN_IDENTITY" ]; then
+    SIGN_IDENTITY="-"
+    echo "✍️ Ad-hoc codesigning app bundle..."
+else
+    echo "✍️ Codesigning with stable identity: ${SIGN_IDENTITY}..."
+fi
+
+codesign --force --deep --sign "${SIGN_IDENTITY}" "${APP_DIR}"
+
+if [ -d "/Applications/${APP_DIR}" ]; then
+    echo "📲 Updating /Applications/${APP_DIR}..."
+    rm -rf "/Applications/${APP_DIR}"
+    cp -R "${APP_DIR}" "/Applications/${APP_DIR}"
+    codesign --force --deep --sign "${SIGN_IDENTITY}" "/Applications/${APP_DIR}"
+fi
 
 echo "✅ Successfully built ${APP_DIR}!"
 echo "You can launch it via: open \"${APP_DIR}\""

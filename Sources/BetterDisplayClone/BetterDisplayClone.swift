@@ -1,5 +1,6 @@
 import AppKit
 import SwiftUI
+import IOKit.pwr_mgt
 
 @main
 @MainActor
@@ -86,7 +87,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 let matching = NSScreen.screens.first {
                     ($0.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? CGDirectDisplayID) == id
                 }
-                let name = matching?.localizedName ?? (isBuiltin ? "Built-in Retina Display" : "LG HDR 4K Monitor")
+                let name = matching?.localizedName ?? (isBuiltin ? "Built-in Retina Display" : "External Display")
                 print("  • \(name) (ID: \(id), Built-in: \(isBuiltin))")
             }
             print("\n🔌 DDC/CI Service Endpoints:")
@@ -114,8 +115,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 print("Usage: betterdisplay-clone set-brightness <0-100>")
                 return
             }
-            let ok = ddc.setBrightness(service: target.service, value: val)
-            print(ok ? "✅ Brightness set to \(val)%" : "❌ Failed to set brightness.")
+            let effectiveVal = max(0, min(100, val))
+            let ok = ddc.setBrightness(service: target.service, value: effectiveVal)
+            print(ok ? "✅ Brightness set to \(effectiveVal)%" : "❌ Failed to set brightness.")
             
         case "get-input":
             guard let target = ext else {
@@ -199,6 +201,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
             let ok = ddc.setVolume(service: target.service, value: val)
             print(ok ? "✅ Volume set to \(val)%" : "❌ Failed to set volume.")
+
+        case "power-off", "power-standby":
+            guard let target = ext else {
+                print("❌ No external display found.")
+                return
+            }
+            let ok = ddc.setPowerStandby(service: target.service)
+            print(ok ? "✅ Monitor power standby command sent." : "❌ Failed to send power standby command.")
+
+        case "power-on":
+            guard let target = ext else {
+                print("❌ No external display found.")
+                return
+            }
+            var assertionID: IOPMAssertionID = 0
+            IOPMAssertionDeclareUserActivity("ResX Pro Wake" as CFString, kIOPMUserActiveLocal, &assertionID)
+            let ok = ddc.setPowerOn(service: target.service)
+            print(ok ? "✅ Monitor power on command sent." : "❌ Failed to send power on command.")
             
         default:
             print("""
@@ -211,6 +231,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
               switch-mac                    Switch external monitor to Mac (Type-C)
               set-input <hex/dec>           Set custom input source code
               set-volume <0-100>            Set external monitor audio volume
+              power-standby / power-off     Put external monitor into standby
+              power-on                      Power on external monitor
             
             Run without arguments to launch the Menu Bar application!
             """)
